@@ -1,0 +1,72 @@
+from __future__ import annotations
+
+import logging
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+
+from apscheduler.schedulers.background import BackgroundScheduler
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.collector.runner import run as collector_run
+from app.core.config import get_settings
+from app.db.session import SessionLocal
+from app.routers import auth, collect, festivals, notification_settings
+
+logger = logging.getLogger(__name__)
+settings = get_settings()
+
+
+def _scheduled_collect() -> None:
+    """スケジューラから呼び出される収集バッチ。"""
+    logger.info("定期収集バッチ 開始")
+    with SessionLocal() as db:
+        summary = collector_run(db)
+    logger.info(
+        "定期収集バッチ 完了 — %d件新規登録 / %d サイト",
+        summary.total_new_festivals,
+        summary.total_sites,
+    )
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
+    scheduler = BackgroundScheduler(timezone="Asia/Tokyo")
+    # 毎日 8:00 JST に収集バッチを実行
+    scheduler.add_job(_scheduled_collect, "cron", hour=8, minute=0)
+    scheduler.start()
+    logger.info("スケジューラ起動: 毎日 08:00 JST に収集バッチを実行します")
+    try:
+        yield
+    finally:
+        scheduler.shutdown(wait=False)
+        logger.info("スケジューラ停止")
+
+
+app = FastAPI(
+    title="Music Festival Manager API",
+    version="0.1.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+API_PREFIX = "/api/v1"
+
+app.include_router(auth.router, prefix=API_PREFIX)
+app.include_router(festivals.router, prefix=API_PREFIX)
+app.include_router(notification_settings.router, prefix=API_PREFIX)
+app.include_router(collect.router, prefix=API_PREFIX)
+
+
+@app.get("/health")
+def health_check() -> dict[str, str]:
+    return {"status": "ok"}

@@ -1,0 +1,67 @@
+[project]
+name = "music-festival-manager-backend"
+version = "0.1.0"
+description = "FastAPI backend for music festival manager"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.111",
+  "uvicorn[standard]>=0.29",
+  "sqlalchemy>=2.0",
+  "psycopg2-binary>=2.9",
+  "pydantic-settings>=2.0",
+  "python-jose[cryptography]>=3.3",
+  "passlib[bcrypt]>=1.7",
+  "python-multipart>=0.0.9",
+  "email-validator>=2.0",
+  "apscheduler>=3.10",
+  "requests>=2.31",
+  "beautifulsoup4>=4.12",
+  "lxml>=5.0",
+]
+
+[project.scripts]
+collect = "app.collector.runner:main"
+notify = "app.notification.runner:main"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-asyncio>=0.23",
+  "httpx>=0.27",
+  "ruff>=0.4",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["."]
+exclude = [
+  ".git",
+  ".venv",
+  "venv",
+  "__pycache__",
+  "alembic/versions",
+  "build",
+  "dist",
+]
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle
+  "F",   # pyflakes
+  "I",   # import sort
+  "UP",  # pyupgrade
+  "B",   # bugbear
+]
+ignore = [
+  "B008"
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+docstring-code-format = true

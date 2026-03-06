@@ -1,0 +1,32 @@
+# python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# virtualenv
+.venv/
+venv/
+
+# env
+.env
+.env.*
+!.env.example
+
+# test / cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# build
+build/
+dist/
+*.egg-info/
+
+# logs
+*.log
+
+# mac
+.DS_Store
