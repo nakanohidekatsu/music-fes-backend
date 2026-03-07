@@ -32,8 +32,20 @@ class MusicFestivalUpdate(BaseModel):
 
 
 class MusicFestivalFullUpdate(BaseModel):
-    """PUT /festivals/{id} — 管理情報の完全更新。全フィールドを置き換える。"""
+    """PUT /festivals/{id} — 基本情報＋管理情報の完全更新。"""
 
+    # 基本情報
+    event_name: str
+    event_date: date
+    prefecture: str | None = None
+    city: str | None = None
+    application_start_date: date | None = None
+    application_deadline: date | None = None
+    result_announcement_date: date | None = None
+    orientation_date: date | None = None
+    homepage_url: str | None = None
+
+    # 参加管理
     application_status: ApplicationStatus = "未設定"
     result_status: ResultStatus = "未設定"
     participation_planned_date: date | None = None
