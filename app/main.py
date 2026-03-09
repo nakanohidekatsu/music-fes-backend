@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.collector.runner import run as collector_run
 from app.core.config import get_settings
 from app.db.session import SessionLocal
-from app.routers import auth, collect, festivals, notification_settings
+from app.routers import auth, collect, festivals, notification_settings, search_keywords
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -65,6 +65,7 @@ app.include_router(auth.router, prefix=API_PREFIX)
 app.include_router(festivals.router, prefix=API_PREFIX)
 app.include_router(notification_settings.router, prefix=API_PREFIX)
 app.include_router(collect.router, prefix=API_PREFIX)
+app.include_router(search_keywords.router, prefix=API_PREFIX)
 
 
 @app.get("/health")

@@ -19,7 +19,6 @@ import requests
 
 from app.collector.base import BaseCollector, FestivalData
 from app.collector.google_search import (
-    _BASE_QUERIES,
     _CSE_INTERVAL,
     _PAGE_INTERVAL,
     _extract_date,
@@ -29,6 +28,14 @@ from app.collector.google_search import (
 )
 from app.collector.registry import register
 from app.core.config import get_settings
+from app.db.session import SessionLocal
+from app.models.search_keyword import SearchKeyword
+
+_DEFAULT_QUERIES = [
+    "音楽フェス 出演者募集 バンド",
+    "音楽フェスティバル ミュージシャン募集",
+    "野外フェス ライブ 出演者募集",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +53,10 @@ class SerpAPICollector(BaseCollector):
             return []
 
         this_year = date.today().year
-        queries = [f"{q} {this_year}" for q in _BASE_QUERIES]
+        with SessionLocal() as db:
+            rows = db.query(SearchKeyword).order_by(SearchKeyword.created_at).all()
+            base_queries = [r.keyword for r in rows] if rows else _DEFAULT_QUERIES
+        queries = [f"{q} {this_year}" for q in base_queries]
 
         seen_urls: set[str] = set()
         results: list[FestivalData] = []
