@@ -7,9 +7,9 @@
 """
 from __future__ import annotations
 
-
 import logging
 from dataclasses import dataclass, field
+from urllib.parse import urlparse
 
 from sqlalchemy.orm import Session
 
@@ -22,6 +22,17 @@ from app.models.music_festival import MusicFestival
 from app.models.source_site import SourceSite
 
 logger = logging.getLogger(__name__)
+
+
+def _get_domain(url: str | None) -> str | None:
+    """URLからドメイン（netloc）を返す。取得できない場合はNone。"""
+    if not url:
+        return None
+    try:
+        netloc = urlparse(url).netloc
+        return netloc.lower() or None
+    except Exception:
+        return None
 
 
 @dataclass
@@ -46,10 +57,23 @@ class CollectSummary:
 def _save_new_festivals(db: Session, festivals: list[FestivalData]) -> int:
     """未登録のフェスのみ保存し、保存件数を返す。
 
-    重複判定: event_name + event_date の組み合わせ。
+    重複判定:
+      1. event_name + event_date の組み合わせ
+      2. homepage_url のドメインが既存レコードと一致する場合
     """
+    # 既存レコードのドメイン一覧をキャッシュ
+    existing_rows = (
+        db.query(MusicFestival.homepage_url)
+        .filter(MusicFestival.homepage_url.isnot(None))
+        .all()
+    )
+    existing_domains: set[str] = {
+        d for row in existing_rows if (d := _get_domain(row[0]))
+    }
+
     saved = 0
     for data in festivals:
+        # 重複判定1: イベント名 + 開催日
         exists = (
             db.query(MusicFestival)
             .filter(
@@ -59,7 +83,13 @@ def _save_new_festivals(db: Session, festivals: list[FestivalData]) -> int:
             .first()
         )
         if exists:
-            logger.debug("スキップ（重複）: %s %s", data.event_name, data.event_date)
+            logger.debug("スキップ（名前+日付重複）: %s %s", data.event_name, data.event_date)
+            continue
+
+        # 重複判定2: ドメイン
+        domain = _get_domain(data.homepage_url)
+        if domain and domain in existing_domains:
+            logger.debug("スキップ（ドメイン重複）: %s domain=%s", data.event_name, domain)
             continue
 
         festival = MusicFestival(
@@ -75,11 +105,45 @@ def _save_new_festivals(db: Session, festivals: list[FestivalData]) -> int:
             source_type="auto",
         )
         db.add(festival)
+        if domain:
+            existing_domains.add(domain)
         saved += 1
 
     if saved:
         db.commit()
     return saved
+
+
+def _deduplicate_by_domain(db: Session) -> int:
+    """同一ドメインのフェスを検出し、URLが長い方を削除する。削除件数を返す。"""
+    festivals = (
+        db.query(MusicFestival)
+        .filter(MusicFestival.homepage_url.isnot(None))
+        .all()
+    )
+
+    domain_groups: dict[str, list[MusicFestival]] = {}
+    for f in festivals:
+        domain = _get_domain(f.homepage_url)
+        if domain:
+            domain_groups.setdefault(domain, []).append(f)
+
+    deleted = 0
+    for domain, group in domain_groups.items():
+        if len(group) <= 1:
+            continue
+        # URL が短い順に並べ、先頭以外を削除
+        group.sort(key=lambda f: len(f.homepage_url or ""))
+        for f in group[1:]:
+            logger.info(
+                "ドメイン重複削除: %s (url=%s, domain=%s)", f.event_name, f.homepage_url, domain
+            )
+            db.delete(f)
+            deleted += 1
+
+    if deleted:
+        db.commit()
+    return deleted
 
 
 def _write_log(
@@ -126,6 +190,11 @@ def run(db: Session) -> CollectSummary:
             summary.results.append(
                 SiteCollectResult(site_name=site.name, status="failure", error_message=str(exc))
             )
+
+    # 収集完了後にドメイン重複を削除
+    deleted = _deduplicate_by_domain(db)
+    if deleted:
+        logger.info("ドメイン重複削除完了: %d件削除", deleted)
 
     return summary
 
