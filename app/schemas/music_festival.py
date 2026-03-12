@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import uuid
 from datetime import date, datetime
 from typing import Literal
@@ -52,8 +53,11 @@ class MusicFestivalFullUpdate(BaseModel):
     participation_status: ParticipationStatus = "未設定"
     participated: bool = False
 
+    # 備考
+    notes: str | None = None
+
     @model_validator(mode="after")
-    def check_status_consistency(self) -> "MusicFestivalFullUpdate":
+    def check_status_consistency(self) -> MusicFestivalFullUpdate:
         # 審査結果は「応募済」後のみ有効
         if self.result_status != "未設定" and self.application_status != "応募済":
             raise ValueError(
@@ -93,6 +97,7 @@ class MusicFestivalResponse(BaseModel):
     participation_planned_date: date | None
     participation_status: ParticipationStatus
     participated: bool
+    notes: str | None
     source_type: SourceType
     created_by: uuid.UUID | None
     created_at: datetime

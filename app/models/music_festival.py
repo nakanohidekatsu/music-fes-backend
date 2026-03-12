@@ -47,6 +47,8 @@ class MusicFestival(Base):
     participation_status: Mapped[str] = mapped_column(String(20), nullable=False, default="未設定")
     participated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
+    notes: Mapped[str | None] = mapped_column(Text)
+
     source_type: Mapped[str] = mapped_column(String(10), nullable=False, default="manual")
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL")
