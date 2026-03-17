@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app.collector.runner import run as collector_run
 from app.core.config import get_settings
@@ -29,13 +30,25 @@ def _scheduled_collect() -> None:
     )
 
 
+def _keepalive() -> None:
+    """Supabase が非アクティブで停止しないよう 15 分ごとに DB へアクセスする。"""
+    try:
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
+        logger.debug("Supabase keepalive: OK")
+    except Exception:
+        logger.warning("Supabase keepalive: failed", exc_info=True)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     scheduler = BackgroundScheduler(timezone="Asia/Tokyo")
     # 毎日 8:00 JST に収集バッチを実行
     scheduler.add_job(_scheduled_collect, "cron", hour=8, minute=0)
+    # 15 分ごとに Supabase へアクセスして停止を防ぐ
+    scheduler.add_job(_keepalive, "interval", minutes=15)
     scheduler.start()
-    logger.info("スケジューラ起動: 毎日 08:00 JST に収集バッチを実行します")
+    logger.info("スケジューラ起動: 毎日 08:00 JST に収集バッチを実行、15 分ごとに DB keepalive")
     try:
         yield
     finally:
