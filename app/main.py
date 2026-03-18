@@ -86,7 +86,7 @@ def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/health/ping")
+@app.get("/ping")
 def health_ping() -> dict[str, str]:
     """cron-job.org から呼び出される DB 疎通確認エンドポイント。"""
     with SessionLocal() as db:
