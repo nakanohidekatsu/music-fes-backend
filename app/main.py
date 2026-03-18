@@ -84,3 +84,11 @@ app.include_router(search_keywords.router, prefix=API_PREFIX)
 @app.get("/health")
 def health_check() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/health/ping")
+def health_ping() -> dict[str, str]:
+    """cron-job.org から呼び出される DB 疎通確認エンドポイント。"""
+    with SessionLocal() as db:
+        db.execute(text("SELECT 1"))
+    return {"status": "ok"}
