@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import uuid
 from datetime import date, timedelta
 
@@ -65,12 +66,13 @@ def list_discovered_festivals(
     limit: int = Query(50, ge=1, le=200),
     sort_by: str = Query("event_date"),
     order: str = Query("asc"),
+    search: str | None = Query(None),
     db: Session = Depends(get_db),
     _current_user: User = Depends(get_current_user),
 ) -> FestivalPageResponse:
     """今日から1年以内の全フェス（収集済み一覧）"""
     items, total = list_festivals_paged(
-        db, page=page, limit=limit, sort_by=sort_by, order=order
+        db, search=search, page=page, limit=limit, sort_by=sort_by, order=order
     )
     return FestivalPageResponse(items=items, total=total, page=page, limit=limit)
 
