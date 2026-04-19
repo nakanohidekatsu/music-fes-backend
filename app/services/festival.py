@@ -20,6 +20,8 @@ def list_festivals_paged(
     *,
     is_managed: bool | None = None,
     search: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     page: int = 1,
     limit: int = 50,
     sort_by: str = "event_date",
@@ -29,13 +31,15 @@ def list_festivals_paged(
     今日から1年以内の開催日を持つフェス一覧をページネーションで返す。
     is_managed を指定すると管理対象フラグでフィルタする。
     search を指定するとイベント名・都道府県・市町村で部分一致検索する。
+    date_from / date_to を指定すると開催日の範囲をカスタマイズできる。
     """
     today = date.today()
-    one_year_later = today + timedelta(days=365)
+    from_date = date_from if date_from is not None else today
+    to_date = date_to if date_to is not None else today + timedelta(days=365)
 
     q = db.query(MusicFestival).filter(
-        MusicFestival.event_date >= today,
-        MusicFestival.event_date <= one_year_later,
+        MusicFestival.event_date >= from_date,
+        MusicFestival.event_date <= to_date,
     )
 
     if is_managed is not None:

@@ -70,9 +70,11 @@ def list_discovered_festivals(
     db: Session = Depends(get_db),
     _current_user: User = Depends(get_current_user),
 ) -> FestivalPageResponse:
-    """今日から1年以内の全フェス（収集済み一覧）"""
+    """過去1年〜今後1年の全フェス（収集済み一覧）"""
+    one_year_ago = date.today() - timedelta(days=365)
     items, total = list_festivals_paged(
-        db, search=search, page=page, limit=limit, sort_by=sort_by, order=order
+        db, search=search, page=page, limit=limit, sort_by=sort_by, order=order,
+        date_from=one_year_ago,
     )
     return FestivalPageResponse(items=items, total=total, page=page, limit=limit)
 
@@ -89,6 +91,30 @@ def list_managed_festivals(
     """管理対象（is_managed=True）のフェス一覧"""
     items, total = list_festivals_paged(
         db, is_managed=True, page=page, limit=limit, sort_by=sort_by, order=order
+    )
+    return FestivalPageResponse(items=items, total=total, page=page, limit=limit)
+
+
+@router.get("/last_year", response_model=FestivalPageResponse)
+def list_last_year_festivals(
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=200),
+    sort_by: str = Query("event_date"),
+    order: str = Query("asc"),
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(get_current_user),
+) -> FestivalPageResponse:
+    """過去1年間の管理対象フェス一覧"""
+    today = date.today()
+    items, total = list_festivals_paged(
+        db,
+        is_managed=True,
+        date_from=today - timedelta(days=365),
+        date_to=today - timedelta(days=1),
+        page=page,
+        limit=limit,
+        sort_by=sort_by,
+        order=order,
     )
     return FestivalPageResponse(items=items, total=total, page=page, limit=limit)
 
