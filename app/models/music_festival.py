@@ -71,6 +71,7 @@ class MusicFestival(Base):
     venue_address: Mapped[str | None] = mapped_column(Text)
     participation_fee: Mapped[float | None] = mapped_column(Numeric(10, 2))
     fee_paid: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    fee_collected: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     music_stand_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     notes: Mapped[str | None] = mapped_column(Text)

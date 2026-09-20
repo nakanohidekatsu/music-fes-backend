@@ -62,6 +62,7 @@ class MusicFestivalFullUpdate(BaseModel):
     venue_address: str | None = None
     participation_fee: float | None = None
     fee_paid: bool = False
+    fee_collected: bool = False
     music_stand_required: bool = False
 
     # 備考
@@ -116,6 +117,7 @@ class MusicFestivalResponse(BaseModel):
     venue_address: str | None
     participation_fee: float | None
     fee_paid: bool
+    fee_collected: bool
     music_stand_required: bool
     notes: str | None
     source_type: SourceType
