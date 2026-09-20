@@ -12,6 +12,8 @@ from app.models.music_festival import MusicFestival
 from app.models.user import User
 from app.routers.deps import get_current_user
 from app.schemas.music_festival import (
+    BulkDeleteRequest,
+    BulkDeleteResponse,
     FestivalPageResponse,
     ManagedUpdate,
     MusicFestivalCreate,
@@ -118,6 +120,25 @@ def list_last_year_festivals(
         order=order,
     )
     return FestivalPageResponse(items=items, total=total, page=page, limit=limit)
+
+
+@router.post("/bulk-delete", response_model=BulkDeleteResponse)
+def bulk_delete_festivals(
+    body: BulkDeleteRequest,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(get_current_user),
+) -> BulkDeleteResponse:
+    """複数のフェスを一括削除する。"""
+    if not body.ids:
+        return BulkDeleteResponse(deleted_count=0)
+
+    deleted_count = (
+        db.query(MusicFestival)
+        .filter(MusicFestival.id.in_(body.ids))
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+    return BulkDeleteResponse(deleted_count=deleted_count)
 
 
 @router.get("/{festival_id}", response_model=MusicFestivalResponse)

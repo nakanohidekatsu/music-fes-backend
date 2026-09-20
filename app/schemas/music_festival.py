@@ -93,6 +93,14 @@ class ManagedUpdate(BaseModel):
     is_managed: bool
 
 
+class BulkDeleteRequest(BaseModel):
+    ids: list[uuid.UUID]
+
+
+class BulkDeleteResponse(BaseModel):
+    deleted_count: int
+
+
 class MusicFestivalResponse(BaseModel):
     id: uuid.UUID
     event_name: str
