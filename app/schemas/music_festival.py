@@ -9,6 +9,7 @@ from pydantic import BaseModel, model_validator
 ApplicationStatus = Literal["未設定", "応募済", "応募見送り"]
 ResultStatus = Literal["未設定", "合格", "不合格", "保留"]
 ParticipationStatus = Literal["未設定", "参加可", "参加不可"]
+ParticipationResultStatus = Literal["未定", "参加済み", "未開催"]
 SourceType = Literal["auto", "manual"]
 
 
@@ -29,7 +30,7 @@ class MusicFestivalUpdate(BaseModel):
     result_status: ResultStatus | None = None
     participation_planned_date: date | None = None
     participation_status: ParticipationStatus | None = None
-    participated: bool | None = None
+    participation_result_status: ParticipationResultStatus | None = None
 
 
 class MusicFestivalFullUpdate(BaseModel):
@@ -51,7 +52,17 @@ class MusicFestivalFullUpdate(BaseModel):
     result_status: ResultStatus = "未設定"
     participation_planned_date: date | None = None
     participation_status: ParticipationStatus = "未設定"
-    participated: bool = False
+    participation_result_status: ParticipationResultStatus = "未定"
+
+    # 参加詳細（participation_status = '参加可' のフェスで入力）
+    participation_date: date | None = None
+    performance_time: str | None = None
+    play_duration: str | None = None
+    stage_name: str | None = None
+    venue_address: str | None = None
+    participation_fee: float | None = None
+    fee_paid: bool = False
+    music_stand_required: bool = False
 
     # 備考
     notes: str | None = None
@@ -68,10 +79,11 @@ class MusicFestivalFullUpdate(BaseModel):
             raise ValueError(
                 "participation_status を設定するには result_status が '合格' である必要があります"
             )
-        # 参加済みは「参加可」のみ
-        if self.participated and self.participation_status != "参加可":
+        # 参加済み/未開催は「参加可」のみ
+        if self.participation_result_status != "未定" and self.participation_status != "参加可":
             raise ValueError(
-                "participated を True にするには participation_status が '参加可' である必要があります"
+                "participation_result_status を設定するには participation_status が "
+                "'参加可' である必要があります"
             )
         return self
 
@@ -96,7 +108,15 @@ class MusicFestivalResponse(BaseModel):
     result_status: ResultStatus
     participation_planned_date: date | None
     participation_status: ParticipationStatus
-    participated: bool
+    participation_result_status: ParticipationResultStatus
+    participation_date: date | None
+    performance_time: str | None
+    play_duration: str | None
+    stage_name: str | None
+    venue_address: str | None
+    participation_fee: float | None
+    fee_paid: bool
+    music_stand_required: bool
     notes: str | None
     source_type: SourceType
     created_by: uuid.UUID | None

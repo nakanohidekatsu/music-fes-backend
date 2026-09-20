@@ -1,7 +1,17 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, String, Text, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Numeric,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -22,6 +32,10 @@ class MusicFestival(Base):
         CheckConstraint(
             "participation_status IN ('未設定', '参加可', '参加不可')",
             name="ck_music_festivals_participation_status",
+        ),
+        CheckConstraint(
+            "participation_result_status IN ('未定', '参加済み', '未開催')",
+            name="ck_music_festivals_participation_result_status",
         ),
         CheckConstraint(
             "source_type IN ('auto', 'manual')",
@@ -45,7 +59,19 @@ class MusicFestival(Base):
     result_status: Mapped[str] = mapped_column(String(20), nullable=False, default="未設定")
     participation_planned_date: Mapped[date | None] = mapped_column(Date)
     participation_status: Mapped[str] = mapped_column(String(20), nullable=False, default="未設定")
-    participated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    participation_result_status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="未定"
+    )
+
+    # 参加詳細（participation_status = '参加可' のフェスで入力）
+    participation_date: Mapped[date | None] = mapped_column(Date)
+    performance_time: Mapped[str | None] = mapped_column(String(50))
+    play_duration: Mapped[str | None] = mapped_column(String(50))
+    stage_name: Mapped[str | None] = mapped_column(String(255))
+    venue_address: Mapped[str | None] = mapped_column(Text)
+    participation_fee: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    fee_paid: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    music_stand_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     notes: Mapped[str | None] = mapped_column(Text)
 

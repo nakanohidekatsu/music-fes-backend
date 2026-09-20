@@ -97,6 +97,7 @@ def list_managed_festivals(
 
 @router.get("/last_year", response_model=FestivalPageResponse)
 def list_last_year_festivals(
+    years: int = Query(1, ge=1, le=5),
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=200),
     sort_by: str = Query("event_date"),
@@ -104,12 +105,12 @@ def list_last_year_festivals(
     db: Session = Depends(get_db),
     _current_user: User = Depends(get_current_user),
 ) -> FestivalPageResponse:
-    """過去1年間の管理対象フェス一覧"""
+    """過去N年間（デフォルト1年）の管理対象フェス一覧"""
     today = date.today()
     items, total = list_festivals_paged(
         db,
         is_managed=True,
-        date_from=today - timedelta(days=365),
+        date_from=today - timedelta(days=365 * years),
         date_to=today - timedelta(days=1),
         page=page,
         limit=limit,
@@ -166,6 +167,21 @@ def update_festival(
     db.commit()
     db.refresh(festival)
     return festival
+
+
+@router.delete("/{festival_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_festival(
+    festival_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(get_current_user),
+) -> None:
+    """フェスを削除する。"""
+    festival = db.query(MusicFestival).filter(MusicFestival.id == festival_id).first()
+    if not festival:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="フェスが見つかりません")
+
+    db.delete(festival)
+    db.commit()
 
 
 @router.patch("/{festival_id}/manage", response_model=MusicFestivalResponse)
